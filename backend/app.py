@@ -23,7 +23,65 @@ class User(db.Model):
 with app.app_context():
     db.create_all()
 
-#prueba
+#Post de usuarios
+@app.route('/POST/directories/', methods=['POST'])
+def create_user():
+    try:
+        data = request.get_json()
+        new_user = User(username=data['name'], emails=data['emails'])
+        db.session.add(new_user)
+        db.session.commit()
+        return jsonify({'id': new_user.id,
+                        'name': new_user.username,
+                        'emails': new_user.emails}), 201
+    except Exception as e:
+        return jsonify({'message': 'error creating user','error':str(e)}), 500            
+
+
+#Get de usuarios por id 
+@app.route('/GET/directories/<id>', methods=['GET'])
+def get_user(id):
+    try:
+        user = User.query.filter_by(id=id).first()
+        if user:
+            return jsonify(user.json()), 200
+        else:
+            return jsonify({'message': 'User not found'}), 404
+    except Exception as e:
+        return jsonify({'message': 'error getting user','error':str(e)}), 500
+
+#Put de usuarios por id
+@app.route('/PUT/directories/<id>', methods=['PUT'])
+def update_user(id):
+    try:
+        user = User.query.filter_by(id=id).first()
+        if user:
+            data = request.get_json()
+            user.username = data['name']
+            user.emails = data['emails']
+            db.session.commit()
+            return jsonify(user.json()), 200
+        else:
+            return jsonify({'message': 'User not found'}), 404
+    except Exception as e:
+        return jsonify({'message': 'error updating user','error':str(e)}), 500
+
+#Delete de usuarios por id
+@app.route('/DELETE/directories/<id>', methods=['DELETE'])
+def delete_user(id):
+    try:
+        user = User.query.filter_by(id=id).first()
+        if user:
+            db.session.delete(user)
+            db.session.commit()
+            return jsonify({'message': 'User deleted'}), 200
+        else:
+            return jsonify({'message': 'User not found'}), 404
+    except Exception as e:
+        return jsonify({'message': 'error deleting user','error':str(e)}), 500
+
+
+
 @app.route('/api/prueba', methods=['GET']) 
 def prueba():
     return jsonify({'message': 'Hello World!'}),200 

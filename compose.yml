@@ -3,6 +3,7 @@ services:
   #flask services
   flaskapp:
     container_name: flaskapp
+    restart: always
     image: flaskapp:1.0.0
     build:
       context: ./backend
@@ -10,7 +11,9 @@ services:
     ports:
       - 4000:4000
     depends_on:
-      - db 
+      db:
+        condition: service_healthy 
+        restart: true
   
   #db services
   db:
@@ -24,6 +27,11 @@ services:
       - 5432:5432
     volumes:
       - db-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 15s
+      timeout: 15s
+      retries: 3
 
 volumes:
   db-data: {}  

@@ -6,7 +6,7 @@ from os import environ
 app = Flask(__name__)
 CORS(app)
 
-app.config['SQLALCHEMY_DATABASE_URI'] = 'postgresql://postgres:123456@db:5432/db'
+app.config['SQLALCHEMY_DATABASE_URI'] = 'postgresql://postgres:123456@host.docker.internal:5432/db'
 db = SQLAlchemy(app)
 
 
@@ -29,26 +29,36 @@ with app.app_context():
 def status():
     return jsonify({'message': 'pong'}), 200
 
+# Obtener una lista de todos los usuarios
 @app.route('/GET/directories/', methods=['GET'])
 def list_users():
-    page = request.args.get('page', 1, type=int)
-    per_page = request.args.get('per_page', 10, type=int)
-    offset = (page - 1) * per_page
+    try:
+        page = request.args.get('page', 1, type=int)
+        per_page = request.args.get('per_page', 10, type=int)
+        offset = (page - 1) * per_page
 
-    users = User.query.offset(offset).limit(per_page).all()
-    total_users = User.query.count()
+        users = User.query.offset(offset).limit(per_page).all()
+        total_users = User.query.count()
 
-    pagination = {
-        'count': total_users,
-        'next': None,
-        'previous': None,
-        'results': [user.json() for user in users]
-    }
+        pagination = {
+            'count': total_users,
+            'next': None,
+            'previous': None,
+            'results': [user.json() for user in users]
+        }
 
-    if page > 1:
-        pagination['previous'] = f'/directories/?page={page - 1}&per_page={per_page}'
-    if page < total_users // per_page:
-        pagination['next'] = f'/directories/?page={page + 1}&per_page={per_page}'
+        if page > 1:
+            pagination['previous'] = f'/directories/?page={page - 1}&per_page={per_page}'
+        if page < total_users // per_page:
+            pagination['next'] = f'/directories/?page={page + 1}&per_page={per_page}'
+
+        # Intenta devolver la respuesta JSON
+        response = jsonify(pagination)
+        return response, 200
+    except Exception as e:
+        # Si ocurre un error, devuelve un mensaje de error y un código de estado 500
+        error_response = jsonify({'error': 'Internal Server Error', 'message': str(e)}), 500
+        return error_response
 
 # Creacion de usuarios
 @app.route('/POST/directories/', methods=['POST'])

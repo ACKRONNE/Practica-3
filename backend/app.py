@@ -6,7 +6,7 @@ from os import environ
 app = Flask(__name__)
 CORS(app)
 
-app.config['SQLALCHEMY_DATABASE_URI'] = 'postgresql://postgres:123456@host.docker.internal:5432/db'
+app.config['SQLALCHEMY_DATABASE_URI'] = 'postgresql://postgres:postgres@host.docker.internal:5432/postgres'
 db = SQLAlchemy(app)
 
 

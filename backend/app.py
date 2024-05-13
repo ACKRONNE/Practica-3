@@ -9,6 +9,8 @@ CORS(app)
 app.config['SQLALCHEMY_DATABASE_URI'] = 'postgresql://postgres:postgres@db:5432/postgres'
 db = SQLAlchemy(app)
 
+
+# Modelo de la base de datos
 class User(db.Model):
     __tablename__ = 'users'
 
@@ -19,11 +21,61 @@ class User(db.Model):
     def json(self):
         return {'id': self.id, 'name': self.username, 'emails': self.emails}
 
-
+# inicializa la bd
 with app.app_context():
     db.create_all()
 
-#Post de usuarios
+
+
+#  GET /status/ -> Responde simplemente pong en formato JSON
+@app.route('/GET/status/', methods=['GET'])
+def status():
+    return jsonify({'message': 'pong'}), 200
+
+# GET /directories/ -> Listar todos los usuarios
+@app.route('/GET/directories/', methods=['GET'])
+def list_users():
+    page = request.args.get('page', 1, type=int)
+    per_page = request.args.get('per_page', 10, type=int)
+    offset = (page - 1) * per_page
+
+    users = User.query.offset(offset).limit(per_page).all()
+    total_users = User.query.count()
+
+    # Preparar los enlaces de paginación
+    pagination = {
+        'count': total_users,
+        'next': None,
+        'previous': None,
+        'results': [user.json() for user in users]
+    }
+
+    if page > 1:
+        pagination['previous'] = f'/directories/?page={page - 1}&per_page={per_page}'
+    if page < total_users // per_page:
+        pagination['next'] = f'/directories/?page={page + 1}&per_page={per_page}'
+
+
+# PATCH /directories/{id} -> Actualizar parcialmente un objeto.
+@app.route('/PATCH/directories/<id>', methods=['PATCH'])
+def update_user_patc(id):
+    try:
+        user = User.query.filter_by(id=id).first()
+        if user:
+            data = request.get_json()
+            user.username = data.get('name', user.username)  
+            user.emails = data.get('emails', user.emails)  
+            db.session.commit()
+            return jsonify(user.json()), 200
+        else:
+            return jsonify({'message': 'User not found'}), 404
+    except Exception as e:
+        return jsonify({'message': 'error updating user','error':str(e)}), 500
+
+
+# ----------------------------------------------------------------------------------------------------------------------------
+
+# Creacion de usuarios
 @app.route('/POST/directories/', methods=['POST'])
 def create_user():
     try:
@@ -38,7 +90,7 @@ def create_user():
         return jsonify({'message': 'error creating user','error':str(e)}), 500            
 
 
-#Get de usuarios por id 
+# Mostrar usuario por id
 @app.route('/GET/directories/<id>', methods=['GET'])
 def get_user(id):
     try:
@@ -50,7 +102,7 @@ def get_user(id):
     except Exception as e:
         return jsonify({'message': 'error getting user','error':str(e)}), 500
 
-#Put de usuarios por id
+# Actualizar usuario por id
 @app.route('/PUT/directories/<id>', methods=['PUT'])
 def update_user(id):
     try:
@@ -66,7 +118,7 @@ def update_user(id):
     except Exception as e:
         return jsonify({'message': 'error updating user','error':str(e)}), 500
 
-#Delete de usuarios por id
+# Delete de usuarios por id
 @app.route('/DELETE/directories/<id>', methods=['DELETE'])
 def delete_user(id):
     try:
@@ -79,7 +131,6 @@ def delete_user(id):
             return jsonify({'message': 'User not found'}), 404
     except Exception as e:
         return jsonify({'message': 'error deleting user','error':str(e)}), 500
-
 
 
 @app.route('/api/prueba', methods=['GET']) 

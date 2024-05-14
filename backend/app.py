@@ -117,7 +117,7 @@ def update_user(id):
         if user:
             data = request.get_json()
             user.username = data['name']
-            user.emails = data['emails']
+            user.emails = data['emails']  
             db.session.commit()
             return jsonify(user.json()), 200
         else:

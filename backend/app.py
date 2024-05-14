@@ -1,12 +1,19 @@
 from flask import Flask, request, jsonify, make_response
 from flask_cors import CORS
 from flask_sqlalchemy import SQLAlchemy
+from sqlalchemy.dialects.postgresql import ARRAY
 from os import environ
 
 app = Flask(__name__)
 CORS(app)
 
-app.config['SQLALCHEMY_DATABASE_URI'] = 'postgresql://postgres:postgres@db:5432/postgres'
+app.config['SQLALCHEMY_DATABASE_URI'] = 'postgresql://%(db_user)s:%(db_passwd)s@%(db_host)s:%(db_port)s/%(db_name)s' % {
+    "db_user": environ.get("DB_USER", 'myuser'),
+    "db_passwd": environ.get("DB_PASSWD", 'myuserpassword'),
+    "db_host": environ.get("DB_HOST", 'localhost'),
+    "db_port": environ.get("DB_PORT", '5432'),
+    "db_name": environ.get("DB_NAME", 'mydbname'),
+}
 db = SQLAlchemy(app)
 
 
@@ -16,7 +23,7 @@ class User(db.Model):
 
     id = db.Column(db.Integer, primary_key=True)
     username = db.Column(db.String(50), nullable=False)
-    emails = db.Column(db.String(120), nullable=False)
+    emails = db.Column(ARRAY(db.String(120)), nullable=False)
 
     def json(self):
         return {'id': self.id, 'name': self.username, 'emails': self.emails}
@@ -28,12 +35,12 @@ with app.app_context():
 
 
 #  GET /status/ -> Responde simplemente pong en formato JSON
-@app.route('/GET/status/', methods=['GET'])
+@app.route('/status/', methods=['GET'])
 def status():
     return jsonify({'message': 'pong'}), 200
 
 # GET /directories/ -> Listar todos los usuarios
-@app.route('/GET/directories/', methods=['GET'])
+@app.route('/directories/', methods=['GET'])
 def list_users():
     page = request.args.get('page', 1, type=int)
     per_page = request.args.get('per_page', 10, type=int)
@@ -57,7 +64,7 @@ def list_users():
 
 
 # PATCH /directories/{id} -> Actualizar parcialmente un objeto.
-@app.route('/PATCH/directories/<id>', methods=['PATCH'])
+@app.route('/directories/<id>', methods=['PATCH'])
 def update_user_patc(id):
     try:
         user = User.query.filter_by(id=id).first()
@@ -76,7 +83,7 @@ def update_user_patc(id):
 # ----------------------------------------------------------------------------------------------------------------------------
 
 # Creacion de usuarios
-@app.route('/POST/directories/', methods=['POST'])
+@app.route('/directories/', methods=['POST'])
 def create_user():
     try:
         data = request.get_json()
@@ -91,7 +98,7 @@ def create_user():
 
 
 # Mostrar usuario por id
-@app.route('/GET/directories/<id>', methods=['GET'])
+@app.route('/directories/<id>', methods=['GET'])
 def get_user(id):
     try:
         user = User.query.filter_by(id=id).first()
@@ -103,7 +110,7 @@ def get_user(id):
         return jsonify({'message': 'error getting user','error':str(e)}), 500
 
 # Actualizar usuario por id
-@app.route('/PUT/directories/<id>', methods=['PUT'])
+@app.route('/directories/<id>', methods=['PUT'])
 def update_user(id):
     try:
         user = User.query.filter_by(id=id).first()
@@ -119,7 +126,7 @@ def update_user(id):
         return jsonify({'message': 'error updating user','error':str(e)}), 500
 
 # Delete de usuarios por id
-@app.route('/DELETE/directories/<id>', methods=['DELETE'])
+@app.route('/directories/<id>', methods=['DELETE'])
 def delete_user(id):
     try:
         user = User.query.filter_by(id=id).first()

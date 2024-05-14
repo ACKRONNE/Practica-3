@@ -1,13 +1,17 @@
 services:
-  
   #flask services
   flaskapp:
     container_name: flaskapp
     restart: always
-    image: flaskapp:1.0.0
     build:
       context: ./backend
       dockerfile: flask.dockerfile
+    environment:
+      DB_USER: "${DB_USER}"
+      DB_PASSWD: "${DB_PASSWD}"
+      DB_HOST: db
+      DB_PORT: 5432
+      DB_NAME: "${DB_NAME}"
     ports:
       - 4000:4000
     depends_on:
@@ -20,11 +24,9 @@ services:
     container_name: db
     image: postgres:13
     environment:
-      POSTGRES_USER: postgres
-      POSTGRES_PASSWORD: postgres
-      POSTGRES_DB: postgres
-    ports:
-      - 5432:5432
+      POSTGRES_USER: "${DB_USER}"
+      POSTGRES_PASSWORD: "${DB_PASSWD}"
+      POSTGRES_DB: "${DB_NAME}"
     volumes:
       - db-data:/var/lib/postgresql/data
     healthcheck:

@@ -36,4 +36,5 @@ services:
       retries: 3
 
 volumes:
-  db-data: {}  
+  db-data: {} 
+

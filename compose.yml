@@ -1,29 +1,42 @@
 services:
-  
   #flask services
   flaskapp:
     container_name: flaskapp
-    image: flaskapp:1.0.0
+    restart: always
     build:
       context: ./backend
       dockerfile: flask.dockerfile
+    environment:
+      DB_USER: "${DB_USER}"
+      DB_PASSWD: "${DB_PASSWD}"
+      DB_HOST: db
+      DB_PORT: 5432
+      DB_NAME: "${DB_NAME}"
     ports:
       - 4000:4000
     depends_on:
-      - db 
+      db:
+        condition: service_healthy 
+        restart: true
   
   #db services
   db:
     container_name: db
-    image: postgres:13
+    image: postgres:16-alpine
     environment:
-      POSTGRES_USER: postgres
-      POSTGRES_PASSWORD: postgres
-      POSTGRES_DB: postgres
-    ports:
-      - 5432:5432
+      POSTGRES_USER: "${DB_USER}"
+      POSTGRES_PASSWORD: "${DB_PASSWD}"
+      POSTGRES_DB: "${DB_NAME}"
     volumes:
       - db-data:/var/lib/postgresql/data
+    ports:
+      - "5433:5432"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 15s
+      timeout: 15s
+      retries: 3
 
 volumes:
-  db-data: {}  
+  db-data: {} 
+

@@ -1,0 +1,52 @@
+version: '3.7'
+
+services:
+  # Flask service
+  flaskapp:
+    image: my_flask_app:latest
+    container_name: flaskapp
+    restart: always
+    deploy:
+      mode: replicated
+      replicas: 1
+    networks:
+      - wpnet
+    environment:
+      DB_USER: "user"
+      DB_PASSWD: "123456"
+      DB_HOST: db
+      DB_PORT: 5432
+      DB_NAME: "grupo12"
+    ports:
+      - 4000:4000
+
+  # DB service
+  db:
+    container_name: db
+    image: postgres:13
+    restart: always
+    networks:
+      - wpnet
+    environment:
+      POSTGRES_USER: "user"
+      POSTGRES_PASSWORD: "123456"
+      POSTGRES_DB: "grupo12"
+    volumes:
+      - db-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 15s
+      timeout: 15s
+      retries: 3
+
+volumes:
+  db-data:
+    driver: local
+    driver_opts:
+      type: "nfs"
+      o: "addr=nfssrv01,rw"
+      device: ":/home/docker-vols/grupo12-db"
+
+networks:
+  wpnet:
+    driver: overlay

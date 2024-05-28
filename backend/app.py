@@ -39,28 +39,30 @@ with app.app_context():
 def status():
     return jsonify({'message': 'pong'}), 200
 
-# GET /directories/ -> Listar todos los usuarios
+# Paginacion de los usuarios en la base de datos
 @app.route('/directories/', methods=['GET'])
 def list_users():
     page = request.args.get('page', 1, type=int)
-    per_page = request.args.get('per_page', 10, type=int)
-    offset = (page - 1) * per_page
+    per_page = request.args.get('per_page', 1, type=int)
 
-    users = User.query.offset(offset).limit(per_page).all()
-    total_users = User.query.count()
+    users = User.query.paginate(page=page, per_page=per_page, error_out=False)
+    total_users = users.total
 
     # Preparar los enlaces de paginación
     pagination = {
         'count': total_users,
         'next': None,
         'previous': None,
-        'results': [user.json() for user in users]
+        'results': [user.json() for user in users.items]
     }
 
-    if page > 1:
-        pagination['previous'] = f'/directories/?page={page - 1}&per_page={per_page}'
-    if page < total_users // per_page:
-        pagination['next'] = f'/directories/?page={page + 1}&per_page={per_page}'
+    if users.has_prev:
+        pagination['previous'] = f'/directories/?page={users.prev_num}&per_page={per_page}'
+    if users.has_next:
+        pagination['next'] = f'/directories/?page={users.next_num}&per_page={per_page}'
+
+    return jsonify(pagination)
+
 
 
 # PATCH /directories/{id} -> Actualizar parcialmente un objeto.
